@@ -1,5 +1,5 @@
 const debug = process.env.NODE_ENV !== "production";
 
 module.exports = {
-  
-  assetPrefix: !debug ? '/canvas-editor-experiment/' : '',
+  assetPrefix: !debug ? "/canvas-editor-experiment/" : "",
+};
