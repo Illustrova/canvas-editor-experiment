@@ -201,6 +201,10 @@ const buildEditor = (canvas) => {
           canvas.renderAll();
         } else {
           /* transform whole selected object */
+          console.log(
+            "🚀 ~ file: index.js ~ line 205 ~ setSelectionStyle ~ object",
+            object
+          );
           object.set({
             [property]: this._getToggledValue(property, object[property]),
           });
@@ -208,12 +212,13 @@ const buildEditor = (canvas) => {
       } else {
         /* if a few objects selected */
         // TODO: rewrite without repeating
-      }
-      objects.map((object) => {
-        object.set({
-          [property]: this._getToggledValue(property, object[property]),
+
+        objects.map((object) => {
+          object.set({
+            [property]: this._getToggledValue(property, object[property]),
+          });
         });
-      });
+      }
       canvas.renderAll();
     },
     /* aligns obkect relatively to canvas */
