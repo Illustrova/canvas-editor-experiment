@@ -3,9 +3,53 @@ import styles from "../styles/Home.module.css";
 import { fabric } from "fabric";
 import { useEffect, useState, useRef } from "react";
 
+import * as icons from "../icons";
 export default function Home() {
   const [canvas, setCanvas] = useState();
   const [selectedObjects, setSelectedObject] = useState([]);
+
+  // Renders the delete icon from svg source.
+  function renderIcon(src) {
+    let deleteImg = document.createElement("img");
+    deleteImg.src = src;
+
+    return function renderIcon(ctx, left, top, styleOverride, fabricObject) {
+      let size = this.cornerSize;
+      ctx.save();
+      ctx.translate(left, top);
+      ctx.rotate(fabric.util.degreesToRadians(fabricObject.angle));
+      ctx.drawImage(deleteImg, -size / 2, -size / 2, size, size);
+      ctx.restore();
+    };
+  }
+
+  const customTextControls = [
+    "textLeft",
+    "textCenter",
+    "textRight",
+    "textJustify",
+  ];
+  // Places the delete icon to the corner of each token.
+  function setTextControls() {
+    const iconSize = 24;
+    // Calculate offset depending on number of items
+    const getOffsetX = (index) =>
+      (index - customTextControls.length / 2) * iconSize + iconSize/2;
+
+    customTextControls.forEach((control, index) => {
+      fabric.Textbox.prototype.controls[control] = new fabric.Control({
+        x: 0,
+        y: -0.5,
+        offsetY: -25,
+        offsetX: getOffsetX(index),
+        cursorStyle: "pointer",
+        mouseUpHandler: () =>
+          editor.alignText(control.substring(4).toLowerCase()),
+        render: renderIcon(icons[control]),
+        cornerSize: 20,
+      });
+    });
+  }
 
   useEffect(() => {
     setCanvas(
@@ -32,8 +76,11 @@ export default function Home() {
     };
     if (canvas) {
       bindEvents(canvas);
+          setTextControls();
+
     }
   }, [canvas]);
+
   const canvasRef = useRef(null);
   const imageInputRef = useRef(null);
   const sliderRef = useRef(null);
@@ -132,6 +179,8 @@ const buildEditor = (canvas) => {
         fontSize: 24,
         fill: "#000",
       });
+      // disable controls to prevent text distortion
+      object.setControlsVisibility({ mb: false, mt: false });
       canvas.add(object);
       canvas.renderAll();
       canvas.setActiveObject(object);
@@ -259,6 +308,14 @@ const buildEditor = (canvas) => {
           object.setCoords();
         });
       }
+      canvas.renderAll();
+    },
+    /* aligns text inside object */
+    /* @param value {"left"|"center"|"right"} */
+    alignText: (value) => {
+      const objects = canvas?.getActiveObjects();
+
+      objects.map((object) => object.set("textAlign", value));
       canvas.renderAll();
     },
     resize(newWidth) {
