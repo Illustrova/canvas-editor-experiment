@@ -36,6 +36,7 @@ export default function Home() {
   }, [canvas]);
   const canvasRef = useRef(null);
   const imageInputRef = useRef(null);
+  const sliderRef = useRef(null);
 
   const editor = buildEditor(canvas);
 
@@ -54,6 +55,12 @@ export default function Home() {
       reader.readAsDataURL(input.files[0]);
     }
   };
+
+  const resizeCanvas = (value) => {
+    editor.resize(value);
+    sliderRef.current.innerHTML = value;
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.buttons}>
@@ -85,6 +92,15 @@ export default function Home() {
         <button onClick={() => editor.align("right")}>Align right</button>
         <button onClick={() => editor.deleteAll()}>Delete selected</button>
         <button onClick={() => editor.deleteAll()}>Clear all</button>
+        <input
+          type="range"
+          min="100"
+          max="1000"
+          defaultValue="700"
+          step="100"
+          onChange={(e) => resizeCanvas(e.target.value)}
+        />
+        <span ref={sliderRef}>700</span>
       </div>
       <canvas
         ref={canvasRef}
@@ -212,7 +228,6 @@ const buildEditor = (canvas) => {
       } else {
         /* if a few objects selected */
         // TODO: rewrite without repeating
-
         objects.map((object) => {
           object.set({
             [property]: this._getToggledValue(property, object[property]),
@@ -245,6 +260,30 @@ const buildEditor = (canvas) => {
         });
       }
       canvas.renderAll();
+    },
+    resize(newWidth) {
+      if (canvas.width != newWidth) {
+        var scaleMultiplier = newWidth / canvas.width;
+        var objects = canvas.getObjects();
+        for (var i in objects) {
+          objects[i].scaleX = objects[i].scaleX * scaleMultiplier;
+          objects[i].scaleY = objects[i].scaleY * scaleMultiplier;
+          objects[i].left = objects[i].left * scaleMultiplier;
+          objects[i].top = objects[i].top * scaleMultiplier;
+          objects[i].setCoords();
+        }
+        var obj = canvas.backgroundImage;
+        if (obj) {
+          obj.scaleX = obj.scaleX * scaleMultiplier;
+          obj.scaleY = obj.scaleY * scaleMultiplier;
+        }
+
+        canvas.discardActiveObject();
+        canvas.setWidth(canvas.getWidth() * scaleMultiplier);
+        canvas.setHeight(canvas.getHeight() * scaleMultiplier);
+        canvas.renderAll();
+        canvas.calcOffset();
+      }
     },
   };
 };
