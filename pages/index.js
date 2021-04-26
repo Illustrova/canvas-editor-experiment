@@ -12,6 +12,8 @@ export default function Home() {
   const [canvas, setCanvas] = useState();
   const [selectedObjects, setSelectedObject] = useState([]);
   const [useGradient, setUseGradient] = useState(false);
+  const [gradientColors, setGradientColors] = useState(DEFAULT_GRADIENT);
+
 
   // Renders the delete icon from svg source.
   function renderIcon(src) {
