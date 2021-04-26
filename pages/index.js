@@ -4,9 +4,14 @@ import { fabric } from "fabric";
 import { useEffect, useState, useRef } from "react";
 
 import * as icons from "../icons";
+
+const DEFAULT_FILL = "#eaeaea";
+const DEFAULT_GRADIENT = { color1: "#ffffff", color2: "#000000" };
+
 export default function Home() {
   const [canvas, setCanvas] = useState();
   const [selectedObjects, setSelectedObject] = useState([]);
+  const [useGradient, setUseGradient] = useState(false);
 
   // Renders the delete icon from svg source.
   function renderIcon(src) {
@@ -34,7 +39,7 @@ export default function Home() {
     const iconSize = 24;
     // Calculate offset depending on number of items
     const getOffsetX = (index) =>
-      (index - customTextControls.length / 2) * iconSize + iconSize/2;
+      (index - customTextControls.length / 2) * iconSize + iconSize / 2;
 
     customTextControls.forEach((control, index) => {
       fabric.Textbox.prototype.controls[control] = new fabric.Control({
@@ -76,8 +81,7 @@ export default function Home() {
     };
     if (canvas) {
       bindEvents(canvas);
-          setTextControls();
-
+      setTextControls();
     }
   }, [canvas]);
 
@@ -108,46 +112,91 @@ export default function Home() {
     sliderRef.current.innerHTML = value;
   };
 
+  const setGradient = (colorName, colorValue) => {
+    setGradientColors({ ...gradientColors, [colorName]: colorValue });
+    editor.setFill(gradientColors);
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.buttons}>
-        <button onClick={() => editor.addText("")}>Add Text</button>
-        <label htmlFor="file-upload" className={styles.fileupload}>
-          Add Image
-        </label>
-        <input
-          ref={imageInputRef}
-          id="file-upload"
-          type="file"
-          style={{ display: "none" }}
-          onChange={addImage}
-        />
-        <button onClick={() => editor.setSelectionStyle("fontWeight")}>
-          Bold
-        </button>
-        <button onClick={() => editor.setSelectionStyle("fontStyle")}>
-          Italic
-        </button>
-        <button onClick={() => editor.setSelectionStyle("underline")}>
-          Underline
-        </button>
-        <button onClick={() => editor.setSelectionStyle("linethrough")}>
-          Strikethrough
-        </button>
-        <button onClick={() => editor.align("left")}>Align left</button>
-        <button onClick={() => editor.align("center")}>Center</button>
-        <button onClick={() => editor.align("right")}>Align right</button>
-        <button onClick={() => editor.deleteAll()}>Delete selected</button>
-        <button onClick={() => editor.deleteAll()}>Clear all</button>
-        <input
-          type="range"
-          min="100"
-          max="1000"
-          defaultValue="700"
-          step="100"
-          onChange={(e) => resizeCanvas(e.target.value)}
-        />
-        <span ref={sliderRef}>700</span>
+        <div>
+          <button onClick={() => editor.addText("")}>Add Text</button>
+          <label htmlFor="file-upload" className={styles.fileupload}>
+            Add Image
+          </label>
+          <input
+            ref={imageInputRef}
+            id="file-upload"
+            type="file"
+            style={{ display: "none" }}
+            onChange={addImage}
+          />
+          <button onClick={() => editor.setSelectionStyle("fontWeight")}>
+            Bold
+          </button>
+          <button onClick={() => editor.setSelectionStyle("fontStyle")}>
+            Italic
+          </button>
+          <button onClick={() => editor.setSelectionStyle("underline")}>
+            Underline
+          </button>
+          <button onClick={() => editor.setSelectionStyle("linethrough")}>
+            Strikethrough
+          </button>
+          <button onClick={() => editor.align("left")}>Align left</button>
+          <button onClick={() => editor.align("center")}>Center</button>
+          <button onClick={() => editor.align("right")}>Align right</button>
+          <button onClick={() => editor.deleteAll()}>Delete selected</button>
+          <button onClick={() => editor.deleteAll()}>Clear all</button>
+        </div>
+        <div>
+          <input
+            type="range"
+            min="100"
+            max="1000"
+            defaultValue="700"
+            step="100"
+            onChange={(e) => resizeCanvas(e.target.value)}
+          />
+          <span ref={sliderRef}>700</span>
+          <label htmlFor="head"> Fill color: </label>
+
+          <input
+            type="color"
+            id="head"
+            name="head"
+            value="#e66465"
+            onChange={(e) => editor.setFill(e.target.value)}
+          />
+          <label htmlFor="grad"> Use gradient </label>
+          <input
+            type="checkbox"
+            id="grad"
+            checked={useGradient}
+            onChange={(e) => setUseGradient(e.target.checked)}
+          />
+          {useGradient && (
+            <>
+              <label htmlFor="cs1">color 1</label>
+              <input
+                type="color"
+                id="color1"
+                name="head"
+                defaultValue="#ffffff"
+                onChange={(e) => setGradient(e.target.id, e.target.value)}
+              />
+              <label htmlFor="cs2">color 2</label>
+              <input
+                type="color"
+                id="color2"
+                name="head"
+                defaultValue="#000000"
+                onChange={(e) => setGradient(e.target.id, e.target.value)}
+              />
+            </>
+          )}
+        </div>
       </div>
       <canvas
         ref={canvasRef}
@@ -214,9 +263,9 @@ const buildEditor = (canvas) => {
       canvas.discardActiveObject();
       canvas.renderAll();
     },
+
     /* Private method, works with "styles" array, where every array element keeps individual letter style
     the purpose is to detect the most common value in selection (for eanmple, bold text can be mixed with normal, and we need to detect the styling of the most part) */
-
     _getMostFrequentValue: (arr, prop) => {
       // get most frequent value in selection */
 
@@ -318,7 +367,7 @@ const buildEditor = (canvas) => {
       objects.map((object) => object.set("textAlign", value));
       canvas.renderAll();
     },
-    resize(newWidth) {
+    resize: (newWidth) => {
       if (canvas.width != newWidth) {
         var scaleMultiplier = newWidth / canvas.width;
         var objects = canvas.getObjects();
@@ -341,6 +390,33 @@ const buildEditor = (canvas) => {
         canvas.renderAll();
         canvas.calcOffset();
       }
+    },
+    setFill: (color) => {
+      // set solid color
+      if (typeof color === "string" || color instanceof String) {
+        canvas.backgroundColor = color;
+      }
+      // set gradient fill
+      else if (typeof color === "object" && color !== null) {
+        const grad = new fabric.Gradient({
+          type: "linear",
+          gradientUnits: "pixels",
+          coords: {
+            x1: 0,
+            y1: 0,
+            x2: canvas.width,
+            y2: 0,
+          },
+          colorStops: [
+            { offset: 0, color: color.color1 },
+            { offset: 1, color: color.color2 },
+          ],
+        });
+        canvas.backgroundColor = grad.toLive(canvas.contextContainer);
+      } else {
+        return;
+      }
+      canvas.renderAll();
     },
   };
 };
