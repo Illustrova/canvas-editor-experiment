@@ -5,6 +5,19 @@ import { useEffect, useState, useRef } from "react";
 
 import * as icons from "../icons";
 
+// To be moved to utils
+// @ts-nocheck
+// Cross-browser compatible way to open a new tab
+export const downloadPicture = (url) => {
+  let link = document.createElement("a");
+  link.style = "display: none";
+  document.body.appendChild(link);
+  link.href = url;
+  link.download = "image.png";
+  link.click();
+  document.body.removeChild(link);
+};
+
 const DEFAULT_FILL = "#eaeaea";
 const DEFAULT_GRADIENT = { color1: "#ffffff", color2: "#000000" };
 
@@ -13,7 +26,6 @@ export default function Home() {
   const [selectedObjects, setSelectedObject] = useState([]);
   const [useGradient, setUseGradient] = useState(false);
   const [gradientColors, setGradientColors] = useState(DEFAULT_GRADIENT);
-
 
   // Renders the delete icon from svg source.
   function renderIcon(src) {
@@ -123,6 +135,7 @@ export default function Home() {
     <div className={styles.container}>
       <div className={styles.buttons}>
         <div>
+          <button onClick={() => editor.saveImage()}>Save Image</button>
           <button onClick={() => editor.addText("")}>Add Text</button>
           <label htmlFor="file-upload" className={styles.fileupload}>
             Add Image
@@ -220,6 +233,13 @@ const TEXT_STYLES = {
 const buildEditor = (canvas) => {
   return {
     canvas,
+    saveImage: () => {
+      let dataString = canvas.toDataURL({
+        enableRetinaScaling: true,
+        multiplier: 2,
+      });
+      downloadPicture(dataString);
+    },
     /* Adds new text block and sets focus in it */
     addText: (text) => {
       // use stroke in text fill, fill default is most of the time transparent
