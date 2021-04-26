@@ -8,12 +8,26 @@ import * as icons from "../icons";
 const DEFAULT_FILL = "#eaeaea";
 const DEFAULT_GRADIENT = { color1: "#ffffff", color2: "#000000" };
 
+// Should be moved to separate utils file
+const clamp = function (val, min, max) {
+  return Math.min(Math.max(val, min), max);
+};
+
 export default function Home() {
   const [canvas, setCanvas] = useState();
   const [selectedObjects, setSelectedObject] = useState([]);
   const [useGradient, setUseGradient] = useState(false);
   const [gradientColors, setGradientColors] = useState(DEFAULT_GRADIENT);
 
+  // @source: https://stackoverflow.com/a/55265764
+  // In order to use updated state inside event listener, we need to create and keep updated a ref to it
+  const [canvasPadding, _setCanvasPadding] = useState(0);
+  const canvasPaddingRef = useRef(canvasPadding);
+  // in place of original setCanvasPadding
+  const setCanvasPadding = (x) => {
+    canvasPaddingRef.current = x; // keep updated
+    _setCanvasPadding(x);
+  };
 
   // Renders the delete icon from svg source.
   function renderIcon(src) {
@@ -62,23 +76,19 @@ export default function Home() {
     setCanvas(
       new fabric.Canvas(canvasRef.current, {
         renderOnAddRemove: true,
+        enableRetinaScaling: true,
       })
     );
   }, [setCanvas]);
 
   useEffect(() => {
     const bindEvents = (canvas) => {
-      canvas.on("selection:cleared", () => {
-        setSelectedObject([]);
-      });
-      canvas.on("selection:created", (e) => {
-        setSelectedObject(e.selected);
-      });
-      canvas.on("selection:updated", (e) => {
-        setSelectedObject(e.selected);
-      });
-      canvas.on("selection:changed", (e) => {
-        setSelectedObject(e.selected);
+      canvas.on({
+        "selection:cleared": () => setSelectedObject([]),
+        "selection:created": (e) => setSelectedObject(e.selected),
+        "selection:updated": (e) => setSelectedObject(e.selected),
+        "selection:changed": (e) => setSelectedObject(e.selected),
+        "object:moving": (e) => limitMovement(e.target),
       });
     };
     if (canvas) {
@@ -107,6 +117,23 @@ export default function Home() {
       };
       reader.readAsDataURL(input.files[0]);
     }
+  };
+
+  const limitMovement = (obj) => {
+    let canvasPadding = canvasPaddingRef.current;
+
+    obj.set({
+      top: clamp(
+        obj.top,
+        canvasPadding,
+        obj.canvas.height - obj.height - canvasPadding
+      ),
+      left: clamp(
+        obj.left,
+        canvasPadding,
+        obj.canvas.width - obj.width - canvasPadding
+      ),
+    });
   };
 
   const resizeCanvas = (value) => {
@@ -153,7 +180,10 @@ export default function Home() {
           <button onClick={() => editor.deleteAll()}>Clear all</button>
         </div>
         <div>
+          <label htmlFor="width">Width: </label>
+
           <input
+            id="width"
             type="range"
             min="100"
             max="1000"
@@ -162,8 +192,18 @@ export default function Home() {
             onChange={(e) => resizeCanvas(e.target.value)}
           />
           <span ref={sliderRef}>700</span>
+          <label htmlFor="padding">Padding: </label>
+          <input
+            id="padding"
+            type="range"
+            min="0"
+            max="100"
+            defaultValue="0"
+            step="10"
+            onChange={(e) => setCanvasPadding(e.target.value)}
+          />
+          <span>{canvasPadding}</span>
           <label htmlFor="head"> Fill color: </label>
-
           <input
             type="color"
             id="head"
@@ -317,10 +357,6 @@ const buildEditor = (canvas) => {
           canvas.renderAll();
         } else {
           /* transform whole selected object */
-          console.log(
-            "🚀 ~ file: index.js ~ line 205 ~ setSelectionStyle ~ object",
-            object
-          );
           object.set({
             [property]: this._getToggledValue(property, object[property]),
           });
