@@ -134,24 +134,17 @@ export default function Home() {
 
   const limitMovement = (obj) => {
     let canvasPadding = canvasPaddingRef.current;
-
-    obj.set({
-      top: clamp(
-        obj.top,
-        canvasPadding,
-        obj.canvas.height - obj.height - canvasPadding
-      ),
-      left: clamp(
-        obj.left,
-        canvasPadding,
-        obj.canvas.width - obj.width - canvasPadding
-      ),
-    });
+    return editor.adjustObjectPosition(obj, canvasPadding);
   };
 
   const resizeCanvas = (value) => {
     editor.resize(value);
     sliderRef.current.innerHTML = value;
+  };
+
+  const onCanvasPaddingSet = (value) => {
+    setCanvasPadding(value);
+    editor.adjustAllObjectsPosition(value);
   };
 
   const setGradient = (colorName, colorValue) => {
@@ -214,7 +207,7 @@ export default function Home() {
             max="100"
             defaultValue="0"
             step="10"
-            onChange={(e) => setCanvasPadding(e.target.value)}
+            onChange={(e) => onCanvasPaddingSet(e.target.value)}
           />
           <span>{canvasPadding}</span>
           <label htmlFor="head"> Fill color: </label>
@@ -450,6 +443,19 @@ const buildEditor = (canvas) => {
         canvas.calcOffset();
       }
     },
+    adjustObjectPosition(obj, padding = 0) {
+      obj.set({
+        top: clamp(obj.top, padding, obj.canvas.height - obj.height - padding),
+        left: clamp(obj.left, padding, obj.canvas.width - obj.width - padding),
+      });
+    },
+    adjustAllObjectsPosition(padding = 0) {
+      let objs = canvas.getObjects().map((o) => {
+        return this.adjustObjectPosition(o, padding);
+      });
+      canvas.renderAll();
+    },
+
     setFill: (color) => {
       // set solid color
       if (typeof color === "string" || color instanceof String) {
