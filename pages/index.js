@@ -28,6 +28,7 @@ const clamp = function (val, min, max) {
 
 export default function Home() {
   const [canvas, setCanvas] = useState();
+  const [bgOpacity, setBgOpacity] = useState(1);
   const [selectedObjects, setSelectedObject] = useState([]);
   const [useGradient, setUseGradient] = useState(false);
   const [gradientColors, setGradientColors] = useState(DEFAULT_GRADIENT);
@@ -183,7 +184,9 @@ export default function Home() {
           <button onClick={() => editor.align("left")}>Align left</button>
           <button onClick={() => editor.align("center")}>Center</button>
           <button onClick={() => editor.align("right")}>Align right</button>
-          <button onClick={() => editor.deleteAll()}>Delete selected</button>
+          <button onClick={() => editor.deleteSelected()}>
+            Delete selected
+          </button>
           <button onClick={() => editor.deleteAll()}>Clear all</button>
         </div>
         <div>
@@ -245,6 +248,31 @@ export default function Home() {
               />
             </>
           )}
+          <label htmlFor="bg-image" className={styles.fileupload}>
+            Add Background Image
+          </label>
+          <input
+            id="bg-image"
+            type="file"
+            style={{ display: "none" }}
+            onChange={(e) =>
+              editor.setImageBackground(e.target.files[0], bgOpacity)
+            }
+          />
+          <label htmlFor="opacity">Opacity: </label>
+          <input
+            id="opacity"
+            type="range"
+            min="0"
+            max="1"
+            defaultValue="1"
+            step="0.05"
+            onChange={(e) => {
+              setBgOpacity(e.target.value);
+              editor.setBgOpacity(e.target.value);
+            }}
+          />
+          <span>{bgOpacity}</span>
         </div>
       </div>
       <canvas
@@ -480,6 +508,45 @@ const buildEditor = (canvas) => {
         canvas.backgroundColor = grad.toLive(canvas.contextContainer);
       } else {
         return;
+      }
+      canvas.renderAll();
+    },
+    setImageBackground: (file, bgOpacity) => {
+      var reader = new FileReader();
+      reader.onload = function (f) {
+        var data = f.target.result;
+        fabric.Image.fromURL(data, function (img) {
+          // calculate aspect ratio to preserve proportions
+          const canvasAspect = canvas.width / canvas.height;
+          const imgAspect = img.width / img.height;
+          let left, top, scaleFactor;
+          // calculate position
+          if (canvasAspect >= imgAspect) {
+            scaleFactor = canvas.width / img.width;
+            left = 0;
+            top = -(img.height * scaleFactor - canvas.height) / 2;
+          } else {
+            scaleFactor = canvas.height / img.height;
+            top = 0;
+            left = -(img.width * scaleFactor - canvas.width) / 2;
+          }
+
+          canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+            top: top,
+            left: left,
+            originX: "left",
+            originY: "top",
+            scaleX: scaleFactor,
+            scaleY: scaleFactor,
+            opacity: bgOpacity,
+          });
+        });
+      };
+      reader.readAsDataURL(file);
+    },
+    setBgOpacity: (value) => {
+      if (canvas.backgroundImage) {
+        canvas.backgroundImage.set("opacity", value);
       }
       canvas.renderAll();
     },
