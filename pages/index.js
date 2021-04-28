@@ -180,9 +180,24 @@ export default function Home() {
           <button onClick={() => editor.setSelectionStyle("linethrough")}>
             Strikethrough
           </button>
-          <button onClick={() => editor.align("left")}>Align left</button>
-          <button onClick={() => editor.align("center")}>Center</button>
-          <button onClick={() => editor.align("right")}>Align right</button>
+          <button onClick={() => editor.align("left", canvasPadding)}>
+            Align left
+          </button>
+          <button onClick={() => editor.align("center", canvasPadding)}>
+            Center
+          </button>
+          <button onClick={() => editor.align("right", canvasPadding)}>
+            Align right
+          </button>
+          <button onClick={() => editor.align("top", canvasPadding)}>
+            Align top
+          </button>
+          <button onClick={() => editor.align("vcenter", canvasPadding)}>
+            vcenter
+          </button>
+          <button onClick={() => editor.align("bottom", canvasPadding)}>
+            Align bottom
+          </button>
           <button onClick={() => editor.deleteAll()}>Delete selected</button>
           <button onClick={() => editor.deleteAll()}>Clear all</button>
         </div>
@@ -387,8 +402,9 @@ const buildEditor = (canvas) => {
       canvas.renderAll();
     },
     /* aligns obkect relatively to canvas */
-    /* @param value {"left"|"center"|"right"} */
-    align: (value) => {
+    /* @param value {"left"|"center"|"right"|"top"|"bottom"|"vcenter"} */
+    // TODO refactor to allow direct access to canvasPadding
+    align(value, padding = 0) {
       const objects = canvas.getActiveObjects();
 
       if (value != "" && objects.length > 0) {
@@ -405,10 +421,29 @@ const buildEditor = (canvas) => {
             object.set({
               left: canvas.width / 2 - (object.width * object.scaleX) / 2,
             });
+          } else if (value === "top") {
+            object.set({
+              top: 0,
+            });
+          } else if (value === "vcenter") {
+            object.set({
+              top: canvas.height / 2 - (object.height * object.scaleY) / 2,
+            });
+          } else if (value === "top") {
+            object.set({
+              top: 0,
+            });
+          } else if (value === "bottom") {
+            object.set({
+              top: canvas.height - object.height * object.scaleY,
+            });
           }
+
+          this.adjustObjectPosition(object, padding);
           object.setCoords();
         });
       }
+
       canvas.renderAll();
     },
     /* aligns text inside object */
